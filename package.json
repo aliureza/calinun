@@ -1,0 +1,10 @@
+{
+  "name": "cullinon",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-web.mjs",
+    "test": "npm --prefix server test && node --test --test-force-exit web/test/smoke.test.mjs",
+    "serve": "node scripts/build-web.mjs && npx --yes serve dist"
+  }
+}

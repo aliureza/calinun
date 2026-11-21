@@ -1,0 +1,13 @@
+{
+  "name": "cullinon-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Session keeper, collector and Web Push sender for Cullinon (zero runtime dependencies)",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/unit.test.js test/integration.test.js",
+    "keys": "node src/keys.js"
+  }
+}
