@@ -1,0 +1,69 @@
+name: Build & deploy PWA (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Server tests (parser, push crypto, proxy, collector, security)
+        working-directory: server
+        run: npm test
+      - name: UI smoke test (demo mode, headless)
+        run: node --test --test-force-exit web/test/smoke.test.mjs
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Optional: bundle the Vazirmatn font (OFL license) so the UI looks identical everywhere.
+      # If this step fails the app silently falls back to system fonts.
+      - name: Fetch Vazirmatn font
+        continue-on-error: true
+        run: |
+          cd "$RUNNER_TEMP"
+          npm pack vazirmatn@33 --silent
+          tar xzf vazirmatn-*.tgz
+          f=$(find package -iname 'Vazirmatn*wght*.woff2' | head -n1)
+          [ -n "$f" ] && cp "$f" "$GITHUB_WORKSPACE/web/fonts/Vazirmatn.woff2" && echo "font: $f"
+
+      - name: Build
+        # Repo → Settings → Secrets and variables → Actions → *Variables* → API_URL.
+        # Leave it unset to publish the DEMO build (sample data, no backend needed).
+        env:
+          API_URL: ${{ vars.API_URL }}
+        run: node scripts/build-web.mjs
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
